@@ -4,15 +4,8 @@
       "symbol": "ETHUSDC",
       "trade_percentage": 0.1,
       "trigger_percentage": 0.02,
-      "max_amount": 500.0,
+      "max_amount": 50.0,
       "minimum_amount": 10.0
-    },
-    {
-      "symbol": "BTCUSDC",
-      "trade_percentage": 0.15,
-      "trigger_percentage": 0.025,
-      "max_amount": 1000.0,
-      "minimum_amount": 20.0
     }
   ]
 }
