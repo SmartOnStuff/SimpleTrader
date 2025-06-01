@@ -4,6 +4,9 @@ import requests
 from datetime import datetime
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
+from dotenv import load_dotenv
+# Load environment variables from .env file
+load_dotenv()
 
 # Load environment variables
 API_KEY = os.getenv('BINANCE_API_KEY')
@@ -246,8 +249,10 @@ def process_trading_pair(pair_config):
                     try:
                         order = client.order_market_sell(symbol=symbol, quantity=qty)
                         main_logger.info(f"[{symbol}] PRODUCTION: Order executed - {order}")
+                        print(f"[{symbol}] PRODUCTION: Order executed - {order}")
                     except BinanceAPIException as e:
                         error_logger.error(f"[{symbol}] Failed to execute SELL order: {e}")
+                        print(f"[{symbol}] Failed to execute SELL order: {e}")
                         return False
                 
                 # Log trade and update base price
@@ -308,8 +313,10 @@ def process_trading_pair(pair_config):
                     try:
                         order = client.order_market_buy(symbol=symbol, quantity=qty)
                         main_logger.info(f"[{symbol}] PRODUCTION: Order executed - {order}")
+                        print(f"[{symbol}] PRODUCTION: Order executed - {order}")
                     except BinanceAPIException as e:
                         error_logger.error(f"[{symbol}] Failed to execute BUY order: {e}")
+                        print(f"[{symbol}] Failed to execute BUY order: {e}")
                         return False
                 
                 # Log trade and update base price
@@ -376,7 +383,7 @@ def main():
 
     mode_text = "PRODUCTION" if PRODUCTION else "SIMULATION"
     main_logger.info(f"Starting trading session in {mode_text} mode with {len(trading_pairs)} pairs")
-    print(f"Starting trading session in {mode_text} mode with {len(trading_pairs)} pairs")
+    #print(f"Starting trading session in {mode_text} mode with {len(trading_pairs)} pairs")
     
     successful_pairs = 0
     failed_pairs = 0
@@ -393,7 +400,7 @@ def main():
 
     # Summary
     main_logger.info(f"Trading session completed: {successful_pairs} successful, {failed_pairs} failed")
-    print(f"Trading session completed: {successful_pairs} successful, {failed_pairs} failed")
+    #print(f"Trading session completed: {successful_pairs} successful, {failed_pairs} failed")
     
     if failed_pairs > 0:
         print(f"Check trading_errors.log for details on {failed_pairs} failed pairs")
