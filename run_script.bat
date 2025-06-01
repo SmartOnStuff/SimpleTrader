@@ -5,6 +5,6 @@ call venv\Scripts\activate
 echo Virtual environment activated.
 
 :loop
-python main.py
+python refactored.py
 timeout /t 20 /nobreak
 goto loop
