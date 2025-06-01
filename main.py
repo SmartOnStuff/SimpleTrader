@@ -212,6 +212,7 @@ def process_trading_pair(pair_config):
     trigger_percentage = pair_config['trigger_percentage']
     max_amount = pair_config['max_amount']
     minimum_amount = pair_config['minimum_amount']
+    decimal = pair_config['decimal']
     
     try:
         date_str, time_str, price = get_price(symbol)
@@ -247,7 +248,7 @@ def process_trading_pair(pair_config):
                 # Execute trade only in production mode
                 if PRODUCTION:
                     try:
-                        order = client.order_market_sell(symbol=symbol, quantity=qty)
+                        order = client.order_market_sell(symbol=symbol, quantity=round(qty, decimal))
                         main_logger.info(f"[{symbol}] PRODUCTION: Order executed - {order}")
                         print(f"[{symbol}] PRODUCTION: Order executed - {order}")
                     except BinanceAPIException as e:
@@ -311,7 +312,7 @@ def process_trading_pair(pair_config):
                 # Execute trade only in production mode
                 if PRODUCTION:
                     try:
-                        order = client.order_market_buy(symbol=symbol, quantity=qty)
+                        order = client.order_market_buy(symbol=symbol, quantity=round(qty, decimal))
                         main_logger.info(f"[{symbol}] PRODUCTION: Order executed - {order}")
                         print(f"[{symbol}] PRODUCTION: Order executed - {order}")
                     except BinanceAPIException as e:
