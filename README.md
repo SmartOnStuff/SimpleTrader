@@ -1,7 +1,7 @@
 # SimpleTrade
 
 A Python-based cryptocurrency trading bot that implements an automated buy-low/sell-high strategy for Binance trading pairs. The bot monitors price movements and executes trades when specified thresholds are reached, with comprehensive logging and Telegram notifications.
-
+![Logo](img_7780.png "Logo")
 ## Features
 
 - **Multi-pair Trading**: Support for multiple cryptocurrency trading pairs with individual configurations
