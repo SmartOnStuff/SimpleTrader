@@ -1,0 +1,2 @@
+ID,Date,Time,Action,Price,Quantity,RED_Balance,USDC_Balance,RED_USD_Price,USDC_USD_Price,RED_USD_Value,USDC_USD_Value,Trade_USD_Value,Total_Balance_USD,Consecutive_Count,Actual_Trade_Percentage
+000001,250603,212500,BUY,0.349400,53.113157,588.829066,167.019633,0.350000,1.000000,206.09,167.02,18.59,373.11,0,0.100000
