@@ -5,6 +5,7 @@ from datetime import datetime
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
 from dotenv import load_dotenv
+from functools import wraps
 
 # Load environment variables from .env file
 load_dotenv()
@@ -12,7 +13,7 @@ load_dotenv()
 # Load environment variables
 API_KEY = os.getenv('BINANCE_API_KEY')
 API_SECRET = os.getenv('BINANCE_API_SECRET')
-CONFIG_FILE = os.getenv('CONFIG_FILE', 'config.json')
+CONFIG_FILE = os.getenv('CONFIG_FILE', 'configmulti.json')
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 PRODUCTION = os.getenv('PRODUCTION', '0') == '1'  # Default to False if not set
@@ -22,6 +23,43 @@ client = Client(API_KEY, API_SECRET)
 
 # Common USD stablecoins for price conversion
 USD_STABLECOINS = ['USDT', 'USDC', 'BUSD', 'FDUSD']
+
+# Global price cache to reduce API calls
+class PriceCache:
+    def __init__(self, ttl_seconds=60):
+        self.cache = {}
+        self.ttl = ttl_seconds
+    
+    def get_price(self, symbol):
+        now = time.time()
+        if symbol in self.cache:
+            price, timestamp = self.cache[symbol]
+            if now - timestamp < self.ttl:
+                return price
+        return None
+    
+    def set_price(self, symbol, price):
+        self.cache[symbol] = (price, time.time())
+
+price_cache = PriceCache()
+
+def rate_limit(calls_per_second=10):
+    """Rate limiting decorator to prevent API abuse."""
+    min_interval = 1.0 / calls_per_second
+    last_called = [0.0]
+    
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            elapsed = time.time() - last_called[0]
+            left_to_wait = min_interval - elapsed
+            if left_to_wait > 0:
+                time.sleep(left_to_wait)
+            ret = func(*args, **kwargs)
+            last_called[0] = time.time()
+            return ret
+        return wrapper
+    return decorator
 
 def setup_logging():
     """Setup logging for main operations and errors."""
@@ -39,7 +77,7 @@ def setup_logging():
     error_handler = logging.FileHandler('trading_errors.log')
     error_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     error_handler.setFormatter(error_formatter)
-    error_logger.addHandler(error_logger)
+    error_logger.addHandler(error_handler)  # FIXED: was error_logger before
     
     return main_logger, error_logger
 
@@ -63,36 +101,65 @@ def send_telegram_message(message):
         error_logger.error(f"Failed to send Telegram message: {e}")
         return False
 
-def get_usd_price(asset):
-    """Get USD price for any asset."""
+@rate_limit(calls_per_second=5)
+def get_usd_price(asset, depth=0, visited=None):
+    """Get USD price for any asset with recursion protection."""
+    # Initialize visited set to prevent infinite recursion
+    if visited is None:
+        visited = set()
+    
+    # Prevent infinite recursion
+    if depth > 3 or asset in visited:
+        error_logger.warning(f"Recursion depth exceeded or circular reference for {asset}")
+        return 0.0
+    
+    visited.add(asset)
+    
+    # Check cache first
+    cached_price = price_cache.get_price(f"{asset}_USD")
+    if cached_price is not None:
+        return cached_price
+    
     if asset in USD_STABLECOINS:
+        price_cache.set_price(f"{asset}_USD", 1.0)
         return 1.0
     
     # Try different USD pairs in order of preference
     for stablecoin in USD_STABLECOINS:
         try:
-            ticker = client.get_symbol_ticker(symbol=f"{asset}{stablecoin}")
-            return float(ticker["price"])
-        except:
+            symbol = f"{asset}{stablecoin}"
+            ticker = client.get_symbol_ticker(symbol=symbol)
+            price = float(ticker["price"])
+            price_cache.set_price(f"{asset}_USD", price)
+            return price
+        except Exception as e:
             continue
     
-    # If direct USD pair not found, try via BTC
-    try:
-        btc_price = get_usd_price('BTC')
-        if btc_price > 0:
-            asset_btc_ticker = client.get_symbol_ticker(symbol=f"{asset}BTC")
-            return float(asset_btc_ticker["price"]) * btc_price
-    except:
-        pass
+    # If direct USD pair not found, try via BTC (only if not already looking for BTC)
+    if asset != 'BTC' and 'BTC' not in visited:
+        try:
+            btc_price = get_usd_price('BTC', depth + 1, visited.copy())
+            if btc_price > 0:
+                asset_btc_symbol = f"{asset}BTC"
+                asset_btc_ticker = client.get_symbol_ticker(symbol=asset_btc_symbol)
+                price = float(asset_btc_ticker["price"]) * btc_price
+                price_cache.set_price(f"{asset}_USD", price)
+                return price
+        except Exception as e:
+            pass
     
-    # Try via ETH
-    try:
-        eth_price = get_usd_price('ETH')
-        if eth_price > 0:
-            asset_eth_ticker = client.get_symbol_ticker(symbol=f"{asset}ETH")
-            return float(asset_eth_ticker["price"]) * eth_price
-    except:
-        pass
+    # Try via ETH (only if not already looking for ETH)
+    if asset != 'ETH' and 'ETH' not in visited:
+        try:
+            eth_price = get_usd_price('ETH', depth + 1, visited.copy())
+            if eth_price > 0:
+                asset_eth_symbol = f"{asset}ETH"
+                asset_eth_ticker = client.get_symbol_ticker(symbol=asset_eth_symbol)
+                price = float(asset_eth_ticker["price"]) * eth_price
+                price_cache.set_price(f"{asset}_USD", price)
+                return price
+        except Exception as e:
+            pass
     
     error_logger.error(f"Could not get USD price for {asset}")
     return 0.0
@@ -135,12 +202,20 @@ def load_config():
         error_logger.error(f"Invalid configuration file: {e}")
         return []
 
+@rate_limit(calls_per_second=5)
 def get_price(base_asset, quote_asset):
     """Return (date_str, time_str, price) for given trading pair."""
     try:
         symbol = get_pair_symbol(base_asset, quote_asset)
+        
+        # Check cache first
+        cached_price = price_cache.get_price(symbol)
+        if cached_price is not None:
+            return time.strftime("%y%m%d"), time.strftime("%H%M%S"), cached_price
+        
         ticker = client.get_symbol_ticker(symbol=symbol)
         price = float(ticker["price"])
+        price_cache.set_price(symbol, price)
         return time.strftime("%y%m%d"), time.strftime("%H%M%S"), price
     except BinanceAPIException as e:
         raise Exception(f"Failed to get price for {base_asset}/{quote_asset}: {e}")
@@ -214,6 +289,9 @@ def get_last_trade_action(base_asset, quote_asset):
     except (ValueError, IndexError) as e:
         error_logger.error(f"Error reading last trade for {base_asset}/{quote_asset}: {e}")
         return None, 0
+
+@rate_limit(calls_per_second=5)
+def get_balances(base_asset, quote_asset):
     """Return (base_balance, quote_balance) for given assets."""
     try:
         account_info = client.get_account()
@@ -225,6 +303,19 @@ def get_last_trade_action(base_asset, quote_asset):
         return base_balance, quote_balance
     except BinanceAPIException as e:
         raise Exception(f"Failed to get balances for {base_asset}/{quote_asset}: {e}")
+
+def calculate_multiplied_trade_percentage(base_percentage, multiplier, current_action, last_action, last_consecutive_count):
+    """Calculate trade percentage with multiplier for consecutive same-direction trades."""
+    if last_action == current_action:
+        # Same direction trade - apply multiplier
+        consecutive_count = last_consecutive_count + 1
+        multiplied_percentage = base_percentage * (multiplier ** consecutive_count)
+        # Cap at 50% to avoid excessive trades
+        actual_percentage = min(multiplied_percentage, 0.5)
+        return actual_percentage, consecutive_count
+    else:
+        # Different direction or first trade - use base percentage
+        return base_percentage, 0
 
 def log_trade(base_asset, quote_asset, action, date_str, time_str, price, qty, 
               base_balance, quote_balance, total_balance_usd, base_usd_price, quote_usd_price,
@@ -271,6 +362,7 @@ def log_trade(base_asset, quote_asset, action, date_str, time_str, price, qty,
             ])
         w.writerow(row)
 
+@rate_limit(calls_per_second=2)
 def execute_trade(base_asset, quote_asset, action, quantity, decimal_places):
     """Execute trade on Binance."""
     symbol = get_pair_symbol(base_asset, quote_asset)
@@ -462,6 +554,25 @@ def process_trading_pair(pair_config):
         error_logger.error(f"[{base_asset}/{quote_asset}] Error processing trading pair: {str(e)}")
         return False
 
+def validate_trading_pair(pair_config):
+    """Validate a trading pair configuration before processing."""
+    required_fields = ['symbol1', 'symbol2', 'trade_percentage', 'trigger_percentage']
+    for field in required_fields:
+        if field not in pair_config:
+            error_logger.error(f"Missing required field '{field}' in trading pair config")
+            return False
+    
+    # Validate percentage values
+    if not (0 < pair_config['trade_percentage'] <= 1):
+        error_logger.error(f"Invalid trade_percentage: {pair_config['trade_percentage']}. Must be between 0 and 1")
+        return False
+    
+    if not (0 < pair_config['trigger_percentage'] <= 1):
+        error_logger.error(f"Invalid trigger_percentage: {pair_config['trigger_percentage']}. Must be between 0 and 1")
+        return False
+    
+    return True
+
 def main():
     """Main function to process all trading pairs."""
     global main_logger, error_logger
@@ -473,6 +584,15 @@ def main():
         print("ERROR: Please set BINANCE_API_KEY and BINANCE_API_SECRET environment variables")
         return
 
+    # Test Binance connection
+    try:
+        client.ping()
+        main_logger.info("Successfully connected to Binance API")
+    except Exception as e:
+        error_logger.error(f"Failed to connect to Binance API: {e}")
+        print(f"ERROR: Cannot connect to Binance API: {e}")
+        return
+
     # Load configuration
     trading_pairs = load_config()
     if not trading_pairs:
@@ -480,28 +600,52 @@ def main():
         print("ERROR: No trading pairs found in configuration")
         return
 
+    # Validate all trading pairs before processing
+    valid_pairs = []
+    for pair_config in trading_pairs:
+        if validate_trading_pair(pair_config):
+            valid_pairs.append(pair_config)
+        else:
+            error_logger.error(f"Invalid configuration for pair: {pair_config}")
+
+    if not valid_pairs:
+        error_logger.error("No valid trading pairs found")
+        print("ERROR: No valid trading pairs found")
+        return
+
     mode_text = "PRODUCTION" if PRODUCTION else "SIMULATION"
-    main_logger.info(f"Starting trading session in {mode_text} mode with {len(trading_pairs)} pairs")
+    main_logger.info(f"Starting trading session in {mode_text} mode with {len(valid_pairs)} pairs")
     
     successful_pairs = 0
     failed_pairs = 0
 
-    # Process each trading pair
-    for pair_config in trading_pairs:
+    # Process each valid trading pair
+    for pair_config in valid_pairs:
         base_asset = pair_config.get('symbol1', 'UNKNOWN')
         quote_asset = pair_config.get('symbol2', 'UNKNOWN')
         main_logger.info(f"Processing {base_asset}/{quote_asset}...")
         
-        if process_trading_pair(pair_config):
-            successful_pairs += 1
-        else:
+        try:
+            if process_trading_pair(pair_config):
+                successful_pairs += 1
+                main_logger.info(f"[{base_asset}/{quote_asset}] Successfully processed")
+            else:
+                failed_pairs += 1
+                error_logger.error(f"[{base_asset}/{quote_asset}] Processing failed")
+        except Exception as e:
             failed_pairs += 1
+            error_logger.error(f"[{base_asset}/{quote_asset}] Unexpected error: {e}")
+        
+        # Add small delay between pairs to respect rate limits
+        time.sleep(0.5)
 
     # Summary
     main_logger.info(f"Trading session completed: {successful_pairs} successful, {failed_pairs} failed")
     
     if failed_pairs > 0:
         print(f"Check trading_errors.log for details on {failed_pairs} failed pairs")
+    
+    print(f"Trading session completed successfully. {successful_pairs} pairs processed, {failed_pairs} failed.")
 
 if __name__ == "__main__":
     main()
