@@ -10,12 +10,12 @@ do
     sleep 59
 
     # Check if any `_trades.csv` file has been created or modified
-    if git status --porcelain | grep -E '_trades.csv$'
+    if git status --porcelain | grep -E 'logs/.*_trades.csv$'    
     then
         echo "Detected changes in trade files, force pushing to GitHub..."
 
         # Add only `_trades.csv` files
-        git add $(git status --porcelain | awk '{print $2}' | grep -E '_trades.csv$')
+        git add $(git status --porcelain | awk '{print $2}' | grep -E 'logs/.*_trades.csv$')
         git commit -m "Auto-push: Updated trade data"
 
         # Forced push to overwrite remote changes
