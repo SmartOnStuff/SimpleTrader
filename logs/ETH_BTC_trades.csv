@@ -1,0 +1,2 @@
+ID,Date,Time,Action,Price,Quantity,ETH_Balance,BTC_Balance,ETH_USD_Price,BTC_USD_Price,ETH_USD_Value,BTC_USD_Value,Trade_USD_Value,Total_Balance_USD,Consecutive_Count,Actual_Trade_Percentage
+000001,250604,100002,SELL,0.024970,0.008389,0.033556,0.001247,2643.350000,105825.300000,88.70,132.01,22.17,220.71,0,0.200000
