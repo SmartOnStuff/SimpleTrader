@@ -2,7 +2,7 @@
   "trading_pairs": [
     {
       "symbol1": "ETH",
-      "symbol2": "EURI",
+      "symbol2": "BTC",
       "trade_percentage": 0.2,
       "trigger_percentage": 0.03,
       "max_amount": 50.0,
