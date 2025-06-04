@@ -2,7 +2,7 @@
 
 An advanced Python-based cryptocurrency trading bot that implements an automated buy-low/sell-high strategy with intelligent trade multipliers for Binance trading pairs. The bot monitors price movements, executes trades when thresholds are reached, and features comprehensive logging with Telegram notifications.
 
-![Logo](IMG_7780.png "Logo")
+![Logo](image/IMG_7780.png "Logo")
 
 ## Features
 
