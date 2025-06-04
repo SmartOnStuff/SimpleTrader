@@ -7,6 +7,9 @@ from binance.exceptions import BinanceAPIException
 from dotenv import load_dotenv
 from functools import wraps
 
+# Add this after the logging setup in main():
+os.makedirs('logs', exist_ok=True)
+    
 # Load environment variables from .env file
 load_dotenv()
 
@@ -66,7 +69,7 @@ def setup_logging():
     # Main log for successful operations
     main_logger = logging.getLogger('main')
     main_logger.setLevel(logging.INFO)
-    main_handler = logging.FileHandler('trading_main.log')
+    main_handler = logging.FileHandler('logs/trading_main.log')
     main_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     main_handler.setFormatter(main_formatter)
     main_logger.addHandler(main_handler)
@@ -74,7 +77,7 @@ def setup_logging():
     # Error log for failures
     error_logger = logging.getLogger('errors')
     error_logger.setLevel(logging.ERROR)
-    error_handler = logging.FileHandler('trading_errors.log')
+    error_handler = logging.FileHandler('logs/trading_errors.log')
     error_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     error_handler.setFormatter(error_formatter)
     error_logger.addHandler(error_handler)  # FIXED: was error_logger before
@@ -235,7 +238,7 @@ def get_last_id(file_path):
 
 def store_price(base_asset, quote_asset, date_str, time_str, price, base_flag):
     """Append to BASE_QUOTE.csv: ID,Date,Time,Price,Base."""
-    fn = f"{base_asset}_{quote_asset}.csv"
+    fn = f"logs/{base_asset}_{quote_asset}.csv"
     row_id = get_last_id(fn)
     row = [f"{row_id:06d}", date_str, time_str, f"{price:.6f}", base_flag]
     is_new = not os.path.isfile(fn)
@@ -248,7 +251,7 @@ def store_price(base_asset, quote_asset, date_str, time_str, price, base_flag):
 
 def get_base_price(base_asset, quote_asset):
     """Return the last logged Base price, or None if none yet."""
-    fn = f"{base_asset}_{quote_asset}.csv"
+    fn = f"logs/{base_asset}_{quote_asset}.csv"
     if not os.path.isfile(fn):
         return None
 
@@ -265,7 +268,7 @@ def get_base_price(base_asset, quote_asset):
 
 def get_last_trade_action(base_asset, quote_asset):
     """Get the last trade action and consecutive count for multiplier calculation."""
-    fn = f"{base_asset}_{quote_asset}_trades.csv"
+    fn = f"logs/{base_asset}_{quote_asset}_trades.csv"
     if not os.path.isfile(fn):
         return None, 0
     
@@ -321,7 +324,7 @@ def log_trade(base_asset, quote_asset, action, date_str, time_str, price, qty,
               base_balance, quote_balance, total_balance_usd, base_usd_price, quote_usd_price,
               consecutive_count, actual_trade_percentage):
     """Append to BASE_QUOTE_trades.csv with all trade details including USD values and multiplier info."""
-    fn = f"{base_asset}_{quote_asset}_trades.csv"
+    fn = f"logs/{base_asset}_{quote_asset}_trades.csv"
     row_id = get_last_id(fn)
     
     # Calculate USD values
