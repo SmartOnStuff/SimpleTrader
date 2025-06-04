@@ -6,15 +6,16 @@ source .env
 while true
 do
     # Run the Python script
-    python3 multipair.py
-    sleep 30
+    python3 main.py
+    sleep 59
 
     # Check if any `_trades.csv` file has been created or modified
-    if git ls-files --modified | grep '_trades.csv$' || ls *_trades.csv 2>/dev/null | grep -q .
+    if git status --porcelain | grep -E '_trades.csv$'
     then
         echo "Detected changes in trade files, force pushing to GitHub..."
 
-        git add .
+        # Add only `_trades.csv` files
+        git add $(git status --porcelain | awk '{print $2}' | grep -E '_trades.csv$')
         git commit -m "Auto-push: Updated trade data"
 
         # Forced push to overwrite remote changes

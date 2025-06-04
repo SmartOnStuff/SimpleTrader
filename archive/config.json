@@ -1,0 +1,20 @@
+{
+  "trading_pairs": [
+    {
+      "symbol": "ETHBTC",
+      "trade_percentage": 0.1,
+      "trigger_percentage": 0.02,
+      "max_amount": 50.0,
+      "minimum_amount": 10.0,
+      "decimal": 3
+    },
+    {
+      "symbol": "REDUSDC",
+      "trade_percentage": 0.1,
+      "trigger_percentage": 0.02,
+      "max_amount": 50.0,
+      "minimum_amount": 10.0,
+      "decimal": 3
+    }
+  ]
+}
