@@ -13,17 +13,17 @@ SUMMARY_OUTPUT = "data/dynamic_analysis_summary.csv"
 INITIAL_USDC_BALANCE = 1000.0  # USD value
 
 # Market trend thresholds (applied on monthly open/close prices)
-BULLISH_THRESHOLD = 0.1   # +3%: monthly close is at least 3% above open → Bullish
-BEARISH_THRESHOLD = -0.1  # -3%: monthly close is at least 3% below open → Bearish
+BULLISH_THRESHOLD = 0.2   # +3%: monthly close is at least 3% above open → Bullish
+BEARISH_THRESHOLD = -0.2  # -3%: monthly close is at least 3% below open → Bearish
 # Otherwise → Sideways
 
 # === DYNAMIC PARAMETER GRID ===
 # Define ranges for each trading parameter.
-base_trade_percentages = [0.1, 0.15, 0.2, 0.25, 0.3]         # Example: 10%-30%
-trigger_percentages    = [0.02, 0.025, 0.03, 0.035, 0.04]       # 2%-4%
-max_trade_usd_values   = [750, 500, 250]                           # USD cap per trade
+base_trade_percentages = [0.1, 0.2, 0.3, 0.4, 0.5]         # Example: 10%-30%
+trigger_percentages    = [0.02, 0.05, 0.1, 0.2]       # 2%-4%
+max_trade_usd_values   = [1000, 750, 500]                           # USD cap per trade
 min_trade_usd_values   = [15]                            # Minimum trade size in USD
-multipliers            = [1.05, 1.1, 1.1, 1.15, 1.2]                   # Multiplier factors
+multipliers            = [1, 1.1, 1.2]                   # Multiplier factors
 
 # Create the full grid of parameter combinations.
 full_grid = list(itertools.product(base_trade_percentages,
