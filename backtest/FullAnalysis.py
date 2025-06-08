@@ -28,11 +28,11 @@ BEARISH_THRESHOLD = -0.2  # -20%: monthly close is at least 20% below open → B
 
 # === DYNAMIC PARAMETER GRID ===
 # Define ranges for each trading parameter.
-base_trade_percentages = [0.1, 0.2, 0.3, 0.4, 0.5]         # Example: 10%-50%
-trigger_percentages    = [0.02, 0.05, 0.1, 0.2]           # 2%-20%
-max_trade_usd_values   = [1000, 750, 500]                   # USD cap per trade
+base_trade_percentages = [0.02, 0.05, 0.1, 0.5, 1]         # Example: 10%-50%
+trigger_percentages    = [0.02, 0.1, 0.2]           # 2%-20%
+max_trade_usd_values   = [10000]                   # USD cap per trade
 min_trade_usd_values   = [15]                               # Minimum trade size in USD
-multipliers            = [1, 1.1, 1.2]                     # Multiplier factors
+multipliers            = [1, 2, 5]                     # Multiplier factors
 
 # Create the full grid of parameter combinations.
 full_grid = list(itertools.product(base_trade_percentages,
@@ -43,7 +43,7 @@ full_grid = list(itertools.product(base_trade_percentages,
 print(f"Total grid size: {len(full_grid)} combinations available.")
 
 # Sample 50 different combinations.
-NUM_COMBOS = 100
+NUM_COMBOS = 45
 sampled_param_combos = random.sample(full_grid, NUM_COMBOS)
 
 # === HELPER FUNCTIONS ===

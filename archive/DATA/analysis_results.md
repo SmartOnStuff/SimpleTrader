@@ -32,19 +32,19 @@ This metric quantifies how much better (or worse) the trading strategy performs 
 #### Market Trend: Bearish
 
 **Combo 1:**
-- Parameters: base_trade_pct: 0.05, trigger_pct: 0.2, max_trade_usd: 10000, multiplier: 5
-- Profit_Diff: 24.20, Trading: -130.07, Hold: -154.27
-- Months: 7, Avg Trades: 2.71
+- Parameters: base_trade_pct: 0.2, trigger_pct: 0.2, max_trade_usd: 500, multiplier: 1.2
+- Profit_Diff: 3.81, Trading: -150.46, Hold: -154.27
+- Months: 7, Avg Trades: 2.86
 
 **Combo 2:**
-- Parameters: base_trade_pct: 0.1, trigger_pct: 0.2, max_trade_usd: 10000, multiplier: 5
-- Profit_Diff: 20.99, Trading: -133.28, Hold: -154.27
-- Months: 7, Avg Trades: 2.71
+- Parameters: base_trade_pct: 0.2, trigger_pct: 0.2, max_trade_usd: 750, multiplier: 1.2
+- Profit_Diff: 3.81, Trading: -150.46, Hold: -154.27
+- Months: 7, Avg Trades: 2.86
 
 **Combo 3:**
-- Parameters: base_trade_pct: 0.02, trigger_pct: 0.2, max_trade_usd: 10000, multiplier: 5
-- Profit_Diff: 14.76, Trading: -139.51, Hold: -154.27
-- Months: 7, Avg Trades: 1.00
+- Parameters: base_trade_pct: 0.3, trigger_pct: 0.2, max_trade_usd: 500, multiplier: 1.2
+- Profit_Diff: 3.75, Trading: -150.52, Hold: -154.27
+- Months: 7, Avg Trades: 2.86
 
 **Conclusion (Bearish):** Under bearish conditions, the algorithm effectively mitigates losses relative to holding. The strategy demonstrates risk reduction capabilities during market downturns.
 
@@ -52,19 +52,19 @@ This metric quantifies how much better (or worse) the trading strategy performs 
 #### Market Trend: Bullish
 
 **Combo 1:**
-- Parameters: base_trade_pct: 0.02, trigger_pct: 0.02, max_trade_usd: 10000, multiplier: 1
-- Profit_Diff: 0.54, Trading: 215.23, Hold: 214.69
-- Months: 17, Avg Trades: 2.12
+- Parameters: base_trade_pct: 0.1, trigger_pct: 0.2, max_trade_usd: 500, multiplier: 1.0
+- Profit_Diff: -11.52, Trading: 203.17, Hold: 214.69
+- Months: 17, Avg Trades: 1.88
 
 **Combo 2:**
-- Parameters: base_trade_pct: 0.02, trigger_pct: 0.2, max_trade_usd: 10000, multiplier: 1
-- Profit_Diff: -0.09, Trading: 214.60, Hold: 214.69
-- Months: 17, Avg Trades: 0.12
+- Parameters: base_trade_pct: 0.1, trigger_pct: 0.2, max_trade_usd: 500, multiplier: 1.1
+- Profit_Diff: -11.61, Trading: 203.08, Hold: 214.69
+- Months: 17, Avg Trades: 1.88
 
 **Combo 3:**
-- Parameters: base_trade_pct: 0.02, trigger_pct: 0.1, max_trade_usd: 10000, multiplier: 1
-- Profit_Diff: -0.31, Trading: 214.38, Hold: 214.69
-- Months: 17, Avg Trades: 0.65
+- Parameters: base_trade_pct: 0.1, trigger_pct: 0.2, max_trade_usd: 500, multiplier: 1.2
+- Profit_Diff: -11.71, Trading: 202.98, Hold: 214.69
+- Months: 17, Avg Trades: 1.88
 
 **Conclusion (Bullish):** In bullish markets, the trading strategy tends to underperform compared to simply holding assets. This suggests that the algorithm may interrupt the full capture of upward trends through premature trading decisions.
 
@@ -72,19 +72,19 @@ This metric quantifies how much better (or worse) the trading strategy performs 
 #### Market Trend: Sideways
 
 **Combo 1:**
-- Parameters: base_trade_pct: 0.02, trigger_pct: 0.02, max_trade_usd: 10000, multiplier: 5
-- Profit_Diff: 34.33, Trading: 29.34, Hold: -4.99
-- Months: 36, Avg Trades: 44.44
+- Parameters: base_trade_pct: 0.5, trigger_pct: 0.05, max_trade_usd: 1000, multiplier: 1.2
+- Profit_Diff: 20.31, Trading: 15.32, Hold: -4.99
+- Months: 36, Avg Trades: 14.86
 
 **Combo 2:**
-- Parameters: base_trade_pct: 0.05, trigger_pct: 0.02, max_trade_usd: 10000, multiplier: 2
-- Profit_Diff: 24.21, Trading: 19.22, Hold: -4.99
-- Months: 36, Avg Trades: 67.17
+- Parameters: base_trade_pct: 0.5, trigger_pct: 0.05, max_trade_usd: 750, multiplier: 1.2
+- Profit_Diff: 20.31, Trading: 15.32, Hold: -4.99
+- Months: 36, Avg Trades: 14.86
 
 **Combo 3:**
-- Parameters: base_trade_pct: 0.1, trigger_pct: 0.02, max_trade_usd: 10000, multiplier: 2
-- Profit_Diff: 23.63, Trading: 18.64, Hold: -4.99
-- Months: 36, Avg Trades: 70.50
+- Parameters: base_trade_pct: 0.5, trigger_pct: 0.05, max_trade_usd: 500, multiplier: 1.2
+- Profit_Diff: 20.30, Trading: 15.31, Hold: -4.99
+- Months: 36, Avg Trades: 14.86
 
 **Conclusion (Sideways):** The strategy performs exceptionally well in sideways markets, where active trading capitalizes on price fluctuations that provide little benefit to a hold strategy.
 
@@ -92,9 +92,9 @@ This metric quantifies how much better (or worse) the trading strategy performs 
 
 | Market Trend | Mean Profit Diff | Std Dev | Min | Max |
 |-------------|------------------|---------|-----|-----|
-| Bearish | -10.20 | 28.18 | -106.80 | 24.20 |
-| Bullish | -36.24 | 29.33 | -98.03 | 0.54 |
-| Sideways | 11.12 | 10.33 | -12.11 | 34.33 |
+| Bearish | -9.69 | 10.68 | -31.85 | 3.81 |
+| Bullish | -34.53 | 10.05 | -52.58 | -11.52 |
+| Sideways | 12.77 | 4.56 | 4.46 | 20.31 |
 
 ## Key Insights & Recommendations
 
