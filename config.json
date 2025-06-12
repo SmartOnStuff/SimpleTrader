@@ -17,7 +17,7 @@
       "trigger_percentage": 0.03,
       "max_amount": 50.0,
       "minimum_amount": 10.0,
-      "decimal": 3,
+      "decimal": 1,
       "multiplier": 5
     }
   ]
