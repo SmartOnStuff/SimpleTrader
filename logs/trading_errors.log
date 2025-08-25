@@ -5545,3 +5545,4 @@
 2025-06-14 01:46:34,073 - ERROR - [ETHBTC] Failed to execute BUY order: APIError(code=-1013): Filter failure: NOTIONAL
 2025-06-14 01:46:34,073 - ERROR - [ETH/BTC] Failed to execute BUY trade: APIError(code=-1013): Filter failure: NOTIONAL
 2025-06-14 01:46:34,073 - ERROR - [ETH/BTC] Processing failed
+2025-07-23 09:36:49,055 - ERROR - Failed to connect to Binance API: APIError(code=-1099): Not found, unauthenticated, or unauthorized.
