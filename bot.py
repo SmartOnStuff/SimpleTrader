@@ -87,13 +87,13 @@ def get_binance_balances():
     except Exception as e:
         print(f"Error fetching Binance balances: {e}")
         return None
-
+        
 # --- Visualization Function ---
 def chartTrades(log_dir):
     """
     Analyzes trade and price data, calculates total PnL,
-    and generates a combined chart showing price action and buy/sell trades
-    for all available cryptocurrency pairs.
+    and generates a combined chart showing price action, buy/sell trades,
+    and total USD balance for all available cryptocurrency pairs.
     
     Args:
         log_dir (Path): The directory path where the log CSV files are located.
@@ -193,29 +193,59 @@ def chartTrades(log_dir):
         pair_price_df = combined_price_df[combined_price_df['pair'] == pair_name]
         pair_trades_df = combined_trades_df[combined_trades_df['pair'] == pair_name]
         
-        # Plot price action
+        # Create secondary y-axis for USD values
+        ax2 = ax.twinx()
+        
+        # Plot price action on primary axis
         if not pair_price_df.empty:
-            ax.plot(pair_price_df['datetime'], pair_price_df['Price'], label=f'{pair_name} Price', linewidth=1)
-        ax.set_ylabel('Price')
+            ax.plot(pair_price_df['datetime'], pair_price_df['Price'], 
+                   label=f'{pair_name} Price', linewidth=1, color='blue')
+        
+        # Plot total USD balance on secondary axis
+        if not pair_trades_df.empty and 'Total_Balance_USD' in pair_trades_df.columns:
+            ax2.plot(pair_trades_df['datetime'], pair_trades_df['Total_Balance_USD'], 
+                    label='Total USD Balance', linewidth=2, color='orange', alpha=0.7)
+        
+        # Set labels and formatting
+        ax.set_ylabel(f'{pair_name} Price', color='blue')
+        ax2.set_ylabel('Total USD Balance', color='orange')
         ax.set_title(f'{pair_name} Price and Trades')
         ax.grid(True, linestyle='--', alpha=0.6)
+        
+        # Color the tick labels to match their respective y-axes
+        ax.tick_params(axis='y', labelcolor='blue')
+        ax2.tick_params(axis='y', labelcolor='orange')
 
-        # Plot buy/sell trades if they exist for this pair
+        # Plot buy/sell trades on primary axis if they exist for this pair
         if not pair_trades_df.empty:
             buy_trades = pair_trades_df[pair_trades_df['Action'] == 'BUY']
             sell_trades = pair_trades_df[pair_trades_df['Action'] == 'SELL']
             
             if not buy_trades.empty:
-                ax.scatter(buy_trades['datetime'], buy_trades['Price'], color='green', marker='^', s=100, label='Buy', zorder=5)
+                ax.scatter(buy_trades['datetime'], buy_trades['Price'], 
+                          color='green', marker='^', s=100, label='Buy', zorder=5)
             if not sell_trades.empty:
-                ax.scatter(sell_trades['datetime'], sell_trades['Price'], color='red', marker='v', s=100, label='Sell', zorder=5)
+                ax.scatter(sell_trades['datetime'], sell_trades['Price'], 
+                          color='red', marker='v', s=100, label='Sell', zorder=5)
         
-        ax.legend()
+        # Set y-axis limits for price (primary axis)
         if not pair_price_df.empty:
             min_price = pair_price_df['Price'].min()
             max_price = pair_price_df['Price'].max()
             padding = (max_price - min_price) * 0.1
             ax.set_ylim(min_price - padding, max_price + padding)
+        
+        # Set y-axis limits for USD balance (secondary axis)
+        if not pair_trades_df.empty and 'Total_Balance_USD' in pair_trades_df.columns:
+            min_usd = pair_trades_df['Total_Balance_USD'].min()
+            max_usd = pair_trades_df['Total_Balance_USD'].max()
+            usd_padding = (max_usd - min_usd) * 0.1 if max_usd != min_usd else max_usd * 0.1
+            ax2.set_ylim(min_usd - usd_padding, max_usd + usd_padding)
+        
+        # Combine legends from both axes
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
 
     if len(unique_pairs) > 0:
         axes[-1].set_xlabel('Date')
@@ -225,7 +255,7 @@ def chartTrades(log_dir):
 
     output_filename = f'trades_chart.png'
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig(output_filename)
+    plt.savefig(output_filename, dpi=300, bbox_inches='tight')
     plt.close(fig)
     return output_filename
 
