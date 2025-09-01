@@ -88,6 +88,8 @@ def get_binance_balances():
         print(f"Error fetching Binance balances: {e}")
         return None
         
+
+    
 # --- Visualization Function ---
 def chartTrades(log_dir):
     """
@@ -228,19 +230,46 @@ def chartTrades(log_dir):
                 ax.scatter(sell_trades['datetime'], sell_trades['Price'], 
                           color='red', marker='v', s=100, label='Sell', zorder=5)
         
-        # Set y-axis limits for price (primary axis)
-        if not pair_price_df.empty:
+        # Align starting points for easier visual comparison
+        if not pair_price_df.empty and not pair_trades_df.empty and 'Total_Balance_USD' in pair_trades_df.columns:
+            # Get the first values to align starting points
+            first_price = pair_trades_df.iloc[0]['Price']  # Use price from first trade
+            first_usd = pair_trades_df.iloc[0]['Total_Balance_USD']
+            
+            # Calculate the range for each dataset
+            min_price = pair_price_df['Price'].min()
+            max_price = pair_price_df['Price'].max()
+            price_range = max_price - min_price
+            price_padding = price_range * 0.1
+            
+            min_usd = pair_trades_df['Total_Balance_USD'].min()
+            max_usd = pair_trades_df['Total_Balance_USD'].max()
+            usd_range = max_usd - min_usd if max_usd != min_usd else max_usd * 0.2
+            usd_padding = usd_range * 0.1 if usd_range > 0 else first_usd * 0.1
+            
+            # Calculate scaling factor to align starting points
+            # We want both lines to start at the same visual height
+            price_bottom = min_price - price_padding
+            price_top = max_price + price_padding
+            price_visual_range = price_top - price_bottom
+            
+            # Calculate where the first price point should be proportionally
+            first_price_ratio = (first_price - price_bottom) / price_visual_range
+            
+            # Set USD limits so that first_usd appears at the same visual ratio
+            usd_visual_range = usd_range + (2 * usd_padding)
+            usd_bottom = first_usd - (first_price_ratio * usd_visual_range)
+            usd_top = usd_bottom + usd_visual_range
+            
+            # Apply the calculated limits
+            ax.set_ylim(price_bottom, price_top)
+            ax2.set_ylim(usd_bottom, usd_top)
+        elif not pair_price_df.empty:
+            # Fallback to original price scaling if USD data not available
             min_price = pair_price_df['Price'].min()
             max_price = pair_price_df['Price'].max()
             padding = (max_price - min_price) * 0.1
             ax.set_ylim(min_price - padding, max_price + padding)
-        
-        # Set y-axis limits for USD balance (secondary axis)
-        if not pair_trades_df.empty and 'Total_Balance_USD' in pair_trades_df.columns:
-            min_usd = pair_trades_df['Total_Balance_USD'].min()
-            max_usd = pair_trades_df['Total_Balance_USD'].max()
-            usd_padding = (max_usd - min_usd) * 0.1 if max_usd != min_usd else max_usd * 0.1
-            ax2.set_ylim(min_usd - usd_padding, max_usd + usd_padding)
         
         # Combine legends from both axes
         lines1, labels1 = ax.get_legend_handles_labels()
