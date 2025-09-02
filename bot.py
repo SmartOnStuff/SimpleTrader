@@ -91,6 +91,7 @@ def get_binance_balances():
 
     
 # --- Visualization Function ---
+# --- Visualization Function ---
 def chartTrades(log_dir):
     """
     Analyzes trade and price data, calculates total PnL,
@@ -169,13 +170,39 @@ def chartTrades(log_dir):
     # --- PnL Calculation ---
     initial_balance_usd = 0
     final_balance_usd = 0
+    final_buy_hold_usd = 0
+    
     if not combined_trades_df.empty and 'Total_Balance_USD' in combined_trades_df.columns:
         initial_balance_usd = combined_trades_df.iloc[0]['Total_Balance_USD']
         final_balance_usd = combined_trades_df.iloc[-1]['Total_Balance_USD']
+        
+        # Calculate final buy & hold value for overall comparison
+        if len(combined_trades_df) > 0:
+            last_trade = combined_trades_df.iloc[-1]
+            first_trade = combined_trades_df.iloc[0]
+            
+            # Get the pair name from the last trade
+            last_pair = last_trade['pair']
+            token_symbol = last_pair.split('_')[0]
+            usdc_symbol = last_pair.split('_')[1] if '_' in last_pair else 'USDC'
+            
+            # Get initial balances from first trade
+            initial_token_balance = first_trade.get(f'{token_symbol}_Balance', 0)
+            initial_usdc_balance = first_trade.get(f'{usdc_symbol}_Balance', 0)
+            
+            # Calculate final buy & hold value
+            final_price = last_trade['Price']
+            final_buy_hold_usd = (initial_token_balance * final_price) + (initial_usdc_balance * 1.0)
 
-    pnl_percentage = 0
+    algorithm_pnl = 0
+    buy_hold_pnl = 0
+    algorithm_outperformance = 0
+    
     if initial_balance_usd > 0:
-        pnl_percentage = ((final_balance_usd - initial_balance_usd) / initial_balance_usd) * 100
+        algorithm_pnl = ((final_balance_usd - initial_balance_usd) / initial_balance_usd) * 100
+        if final_buy_hold_usd > 0:
+            buy_hold_pnl = ((final_buy_hold_usd - initial_balance_usd) / initial_balance_usd) * 100
+            algorithm_outperformance = algorithm_pnl - buy_hold_pnl
 
     # --- Plotting ---
     unique_pairs = combined_trades_df['pair'].unique()
@@ -185,9 +212,12 @@ def chartTrades(log_dir):
     if len(unique_pairs) == 1:
         axes = [axes]
 
-    title = 'Trade History'
+    title = 'Trading Algorithm Performance vs Buy & Hold'
     if initial_balance_usd > 0:
-        title += f'\nOverall PnL: {pnl_percentage:.2f}%'
+        title += f'\nAlgorithm PnL: {algorithm_pnl:.2f}%'
+        if final_buy_hold_usd > 0:
+            title += f' | Buy & Hold PnL: {buy_hold_pnl:.2f}%'
+            title += f' | Outperformance: {algorithm_outperformance:+.2f}%'
     
     fig.suptitle(title, fontsize=16, fontweight='bold')
     
@@ -206,7 +236,33 @@ def chartTrades(log_dir):
         # Plot total USD balance on secondary axis
         if not pair_trades_df.empty and 'Total_Balance_USD' in pair_trades_df.columns:
             ax2.plot(pair_trades_df['datetime'], pair_trades_df['Total_Balance_USD'], 
-                    label='Total USD Balance', linewidth=2, color='orange', alpha=0.7)
+                    label='Algorithm Balance', linewidth=2, color='orange', alpha=0.8)
+            
+            # Calculate and plot "Buy & Hold" baseline
+            if len(pair_trades_df) > 0:
+                # Get initial balances from first trade
+                first_trade = pair_trades_df.iloc[0]
+                
+                # Extract the token symbol from pair name (e.g., 'RED' from 'RED_USDC')
+                token_symbol = pair_name.split('_')[0]
+                usdc_symbol = pair_name.split('_')[1] if '_' in pair_name else 'USDC'
+                
+                # Get initial token and USDC balances
+                initial_token_balance = first_trade.get(f'{token_symbol}_Balance', 0)
+                initial_usdc_balance = first_trade.get(f'{usdc_symbol}_Balance', 0)
+                
+                # Calculate buy & hold values for each trade timestamp
+                buy_hold_values = []
+                for _, trade in pair_trades_df.iterrows():
+                    current_token_price = trade['Price']
+                    # Buy & Hold value = initial_token_amount * current_price + initial_usdc_amount * 1
+                    buy_hold_value = (initial_token_balance * current_token_price) + (initial_usdc_balance * 1.0)
+                    buy_hold_values.append(buy_hold_value)
+                
+                # Plot buy & hold line
+                ax2.plot(pair_trades_df['datetime'], buy_hold_values, 
+                        label='Buy & Hold Baseline', linewidth=2, color='purple', 
+                        linestyle='--', alpha=0.8)
         
         # Set labels and formatting
         ax.set_ylabel(f'{pair_name} Price', color='blue')
@@ -236,14 +292,31 @@ def chartTrades(log_dir):
             first_price = pair_trades_df.iloc[0]['Price']  # Use price from first trade
             first_usd = pair_trades_df.iloc[0]['Total_Balance_USD']
             
-            # Calculate the range for each dataset
+            # Calculate the range for each dataset including buy & hold values
             min_price = pair_price_df['Price'].min()
             max_price = pair_price_df['Price'].max()
             price_range = max_price - min_price
             price_padding = price_range * 0.1
             
-            min_usd = pair_trades_df['Total_Balance_USD'].min()
-            max_usd = pair_trades_df['Total_Balance_USD'].max()
+            # Include buy & hold values in USD range calculation
+            all_usd_values = list(pair_trades_df['Total_Balance_USD'])
+            if len(pair_trades_df) > 0:
+                # Add buy & hold values to range calculation
+                first_trade = pair_trades_df.iloc[0]
+                token_symbol = pair_name.split('_')[0]
+                usdc_symbol = pair_name.split('_')[1] if '_' in pair_name else 'USDC'
+                initial_token_balance = first_trade.get(f'{token_symbol}_Balance', 0)
+                initial_usdc_balance = first_trade.get(f'{usdc_symbol}_Balance', 0)
+                
+                buy_hold_values = []
+                for _, trade in pair_trades_df.iterrows():
+                    buy_hold_value = (initial_token_balance * trade['Price']) + (initial_usdc_balance * 1.0)
+                    buy_hold_values.append(buy_hold_value)
+                
+                all_usd_values.extend(buy_hold_values)
+            
+            min_usd = min(all_usd_values)
+            max_usd = max(all_usd_values)
             usd_range = max_usd - min_usd if max_usd != min_usd else max_usd * 0.2
             usd_padding = usd_range * 0.1 if usd_range > 0 else first_usd * 0.1
             
@@ -287,7 +360,6 @@ def chartTrades(log_dir):
     plt.savefig(output_filename, dpi=300, bbox_inches='tight')
     plt.close(fig)
     return output_filename
-
 # --- Command Handlers ---
 
 async def chart_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
