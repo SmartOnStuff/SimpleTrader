@@ -91,18 +91,18 @@ def get_binance_balances():
 
     
 # --- Visualization Function ---
-# --- Visualization Function ---
 def chartTrades(log_dir):
     """
     Analyzes trade and price data, calculates total PnL,
     and generates a combined chart showing price action, buy/sell trades,
-    and total USD balance for all available cryptocurrency pairs.
+    total USD balance, and manual selloff indicators for all available cryptocurrency pairs.
     
     Args:
         log_dir (Path): The directory path where the log CSV files are located.
     """
     all_price_data = []
     all_trades_data = []
+    all_selloff_data = {}
 
     # Dynamically find all trade log files for the specific user
     trade_files = list(log_dir.glob(f"*_trades.csv"))
@@ -122,6 +122,7 @@ def chartTrades(log_dir):
                 continue
                 
             price_file_path = log_dir / f"{pair_name}.csv"
+            selloff_file_path = log_dir / f"{pair_name}_selloff.csv"
 
             # Load trade and price data for the current pair
             if not price_file_path.exists():
@@ -130,6 +131,18 @@ def chartTrades(log_dir):
                 
             price_df = pd.read_csv(price_file_path)
             trades_df = pd.read_csv(trade_file_path)
+            
+            # Load selloff data if available
+            if selloff_file_path.exists():
+                try:
+                    selloff_df = pd.read_csv(selloff_file_path)
+                    # Parse the date column (format: yyMMDD)
+                    selloff_df['date'] = selloff_df['date'].astype(str).str.zfill(6)
+                    selloff_df['datetime'] = pd.to_datetime(selloff_df['date'], format='%y%m%d')
+                    all_selloff_data[pair_name] = selloff_df
+                    print(f"Loaded {len(selloff_df)} selloff indicators for {pair_name}")
+                except Exception as e:
+                    print(f"Warning: Could not load selloff file for {pair_name}: {e}")
             
             # Add a 'pair' column for later plotting and filtering
             price_df['pair'] = pair_name
@@ -264,6 +277,25 @@ def chartTrades(log_dir):
                         label='Buy & Hold Baseline', linewidth=2, color='purple', 
                         linestyle='--', alpha=0.8)
         
+        # Plot selloff indicators as vertical lines
+        if pair_name in all_selloff_data:
+            selloff_df = all_selloff_data[pair_name]
+            for _, row in selloff_df.iterrows():
+                action = row['action'].upper()
+                color = 'green' if action == 'BUY' else 'red'
+                alpha = 0.3
+                linestyle = '-'
+                
+                # Plot vertical line spanning both axes
+                ax.axvline(x=row['datetime'], color=color, alpha=alpha, 
+                          linestyle=linestyle, linewidth=2, zorder=1)
+                
+                # Add text label at the top of the chart
+                ax.text(row['datetime'], ax.get_ylim()[1], 
+                       f" {action}", rotation=90, 
+                       verticalalignment='top', color=color, 
+                       fontweight='bold', fontsize=9, alpha=0.8)
+        
         # Set labels and formatting
         ax.set_ylabel(f'{pair_name} Price', color='blue')
         ax2.set_ylabel('Total USD Balance', color='orange')
@@ -360,7 +392,6 @@ def chartTrades(log_dir):
     plt.savefig(output_filename, dpi=300, bbox_inches='tight')
     plt.close(fig)
     return output_filename
-# --- Command Handlers ---
 
 async def chart_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the /chart command to generate and send trade history chart."""
